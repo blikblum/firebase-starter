@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { createFileRoute, Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, useNavigate, useRouterState } from '@tanstack/react-router'
 
 import type { AppShellLinkProps, AppShellNavItem } from '@/components/app-shell'
 import { AppShell } from '@/components/app-shell'
@@ -7,17 +7,17 @@ import { useStore } from '@/helpers/reatom'
 import { appSessionAtom } from '@/stores/appSession'
 import { signOut } from '@/stores/appSession.service'
 
-export const Route = createFileRoute('/')({
-  component: HomeRoute,
+export const Route = createFileRoute('/_app')({
+  component: AppLayoutRoute,
 })
 
 const RouterLink = (props: AppShellLinkProps): React.JSX.Element => {
   return <Link {...props} />
 }
 
-function HomeRoute(): React.JSX.Element | null {
+function AppLayoutRoute(): React.JSX.Element | null {
   const session = useStore(appSessionAtom)
-  const navigate = useNavigate({ from: Route.fullPath })
+  const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
 
   React.useEffect(() => {
@@ -43,15 +43,7 @@ function HomeRoute(): React.JSX.Element | null {
       onSignOut={() => void signOut()}
       LinkComponent={RouterLink}
     >
-      <div className="space-y-3">
-        <p className="text-sm font-medium text-slate-500">Home</p>
-        <h1 className="text-3xl font-semibold text-slate-900">
-          Hello {session.user?.name ?? ''}
-        </h1>
-        <p className="text-base text-slate-600">
-          You&apos;re signed in and ready to explore the starter.
-        </p>
-      </div>
+      <Outlet />
     </AppShell>
   )
 }
