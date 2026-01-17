@@ -1,0 +1,14 @@
+{
+  "name": "firebase-starter",
+  "version": "0.1.0",
+  "description": "Firebase project starter",
+  "main": "index.js",
+  "repository": "https://github.com/blikblum/firebase-starter",
+  "author": "Luiz Americo",
+  "license": "MIT",
+  "packageManager": "yarn@4.12.0",
+  "workspaces": [
+    "packages/*",
+    "functions"
+  ]
+}
