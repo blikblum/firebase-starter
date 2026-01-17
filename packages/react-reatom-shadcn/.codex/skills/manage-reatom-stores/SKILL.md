@@ -32,12 +32,14 @@ Example:
 import { atom, computed } from '@reatom/core'
 import { Movie } from '../api/movie'
 
-export const moviesAtom = atom<Movie[]>([])
+export const moviesAtom = atom<Movie[]>([], 'movies')
 
-export const movieCountAtom = computed(() => moviesAtom().length)
+export const movieCountAtom = computed(() => moviesAtom().length, 'movieCount')
 ```
 
 Keep initial state explicit, and prefer small, focused atoms.
+
+Add name strings as the second parameter to `atom` and `computed` for easier debugging.
 
 ## 3) Add or update service functions (if needed)
 
