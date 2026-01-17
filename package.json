@@ -10,5 +10,8 @@
   "workspaces": [
     "packages/*",
     "functions"
-  ]
+  ],
+  "scripts": {
+    "start-emulators": "firebase emulators:start --inspect-functions --only firestore,functions,auth"
+  }
 }

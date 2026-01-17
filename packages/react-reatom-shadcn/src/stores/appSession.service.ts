@@ -1,47 +1,87 @@
-import { AppUser } from '../api/appUser'
 import { appSessionAtom } from './appSession'
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut as authSignOut,
+} from 'firebase/auth'
+import { AppUserRole } from '../api/appUser'
 
-export interface LoginPayload {
+export async function signIn({
+  email,
+  password,
+}: {
   email: string
-  name: string
-}
+  password: string
+}): Promise<void> {
+  try {
+    appSessionAtom.set((appSession) => ({
+      ...appSession,
+      isSigning: true,
+      error: undefined,
+    }))
 
-const LOGIN_DELAY_MS = 650
+    const auth = getAuth()
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
-}
-
-function buildMockUser(payload: LoginPayload): AppUser {
-  return {
-    id: 'user-001',
-    name: payload.name,
-    email: payload.email,
-    roles: ['owner'],
+    await signInWithEmailAndPassword(auth, email, password)
+  } catch (error) {
+    appSessionAtom.set((appSession) => ({
+      ...appSession,
+      isSigning: false,
+      isSigned: false,
+      user: undefined,
+      error: `${error}`,
+    }))
   }
 }
 
-export async function mockLogin(payload: LoginPayload): Promise<AppUser> {
-  appSessionAtom.set((state) => ({
-    ...state,
-    isSigned: false,
-    isSigning: true,
-    error: undefined,
-    user: undefined,
-  }))
+let signOutReason: string | undefined
 
-  await delay(LOGIN_DELAY_MS)
+export async function signOut(reason?: string): Promise<void> {
+  signOutReason = reason
+  const auth = getAuth()
+  await authSignOut(auth)
+}
 
-  const user = buildMockUser(payload)
+export function listenToAuthStateChanges(): void {
+  const auth = getAuth()
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const idTokenResult = await user.getIdTokenResult()
+      const manager = idTokenResult.claims?.manager
+      if (!manager) {
+        await signOut('Acesso não autorizado')
 
-  appSessionAtom.set({
-    isSigned: true,
-    isSigning: false,
-    error: undefined,
-    user,
+        return
+      }
+
+      const userRoles: AppUserRole[] = ['manager']
+      if (idTokenResult.claims?.owner) {
+        userRoles.push('owner')
+      }
+
+      appSessionAtom.set((appSession) => ({
+        ...appSession,
+        isSigning: false,
+        isSigned: true,
+        user: {
+          id: user.uid,
+          email: user.email || '',
+          name: user.displayName || '',
+          roles: userRoles,
+        },
+        error: undefined,
+      }))
+    } else {
+      appSessionAtom.set((appSession) => ({
+        ...appSession,
+        isSigning: false,
+        isSigned: false,
+        user: undefined,
+        error: signOutReason,
+      }))
+
+      signOutReason = undefined
+    }
   })
-
-  return user
 }

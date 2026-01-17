@@ -20,6 +20,11 @@ This is a starter template for building React applications using Reatom for stat
 - `src/stores`: Reatom atoms and related services
 - `src/routes`: Application routes
 
+## Testing
+
+- Component tests should be done using Storybook stories. `<component>.stories.tsx` should be created alongside each component.
+
 ## General Guidelines
 
 - Keep types strict and explicit. Prefer typed params and explicit return types for functions, and avoid unused locals/params.
+- After updating TypeScript code, check for type errors before finishing by running `yarn check:types`.

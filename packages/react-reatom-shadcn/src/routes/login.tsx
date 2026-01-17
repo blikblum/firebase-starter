@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, JSX } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 
 import { LoginForm } from '@/components/login-form'
@@ -9,7 +9,7 @@ export const Route = createFileRoute('/login')({
   component: LoginRoute,
 })
 
-function LoginRoute(): JSX.Element {
+function LoginRoute(): JSX.Element | null {
   const session = useStore(appSessionAtom)
   const navigate = useNavigate({ from: Route.fullPath })
 
