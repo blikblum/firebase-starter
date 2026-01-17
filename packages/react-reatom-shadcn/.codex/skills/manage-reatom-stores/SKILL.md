@@ -1,5 +1,5 @@
 ---
-name: reatom-stores
+name: manage-reatom-stores
 description: Create or update Reatom stores in this repo. Use when adding a new store under `src/stores`, changing store state shape, adding computed atoms, or creating/updating related store service functions.
 ---
 
@@ -58,5 +58,5 @@ export function addMovie(movie: Movie): void {
 Search for all usages and update them to match the new store shape.
 
 Use:
-- `rg -n "moviesAtom|movieCountAtom|addMovie" src`
 
+- `rg -n "moviesAtom|movieCountAtom|addMovie" src`

@@ -1,5 +1,5 @@
 ---
-name: app-services
+name: manage-app-services
 description: Create or update service functions in this repo, especially store-related services in `src/stores/*.service.ts`. Use when adding new service functions, changing service behavior or params, or wiring services to DOM tasks.
 ---
 
