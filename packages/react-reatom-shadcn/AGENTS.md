@@ -4,7 +4,7 @@ This is a starter template for building React applications using Reatom for stat
 
 ## Dev environment
 
-- Node.js project managed with Yarn package manager.
+- Node.js project managed with pnpm package manager.
 
 ## Architecture Overview
 
@@ -27,4 +27,4 @@ This is a starter template for building React applications using Reatom for stat
 ## General Guidelines
 
 - Keep types strict and explicit. Prefer typed params and explicit return types for functions, and avoid unused locals/params.
-- After updating TypeScript code, check for type errors before finishing by running `yarn check:types`.
+- After updating TypeScript code, check for type errors before finishing by running `pnpm --filter react-reatom-shadcn check:types`.
