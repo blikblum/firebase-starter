@@ -6,7 +6,7 @@
   "repository": "https://github.com/blikblum/firebase-starter",
   "author": "Luiz Americo",
   "license": "MIT",
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@11.9.0",
   "workspaces": [
     "packages/*",
     "functions"

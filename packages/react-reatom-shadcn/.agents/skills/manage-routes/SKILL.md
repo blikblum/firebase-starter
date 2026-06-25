@@ -7,21 +7,25 @@ description: Create or edit TanStack Router file-based routes in this repo. Use 
 
 ## Overview
 
-Create and refactor TanStack Router routes using the file-based routing conventions in this repo, including layout/pathless layout patterns with Outlet.
+Create and refactor TanStack Router routes using the file-based routing conventions in this repo. Keep route registration in `src/routes`, page UI in `src/pages/<page-name>/PageNamePage.tsx`, and use layout/pathless layout patterns with `Outlet` when needed.
 
 ## Workflow
 
 ### 1) Choose the route type and file name
 
-- Prefer directory route structure under `src/routes/<route>/` with `route.tsx` for layouts and `index.tsx` for index routes.
+- Prefer flat route files under `src/routes/*.tsx` for normal pages.
 - Use a layout route when multiple pages share UI or auth logic.
 - Use a pathless layout for shared UI without adding a path segment (prefix with `_`).
-- Use flat routes (`src/routes/*.tsx`) only for one-off or very small apps.
+- Use directory route structure only when a layout or route grouping is clearer with `route.tsx` and child files.
+- Create the matching page component in `src/pages/<page-name>/PageNamePage.tsx`.
+- Keep page-specific components, stories, and helpers in the same page folder instead of a shared folder.
 
 Examples:
 
-- `/about` route (directory): `src/routes/about/route.tsx` with `createFileRoute('/about')`.
-- Pathless layout (directory): `src/routes/_app/route.tsx` with `createFileRoute('/_app')` and child pages like `src/routes/_app/index.tsx` (`createFileRoute('/_app/')`) and `src/routes/_app/about.tsx` (`createFileRoute('/_app/about')`).
+- `/login` route (flat): `src/routes/login.tsx` with `createFileRoute('/login')`.
+- Use a layout folder only when needed, for example `src/routes/_app/route.tsx` with child pages such as `src/routes/_app/index.tsx` or `src/routes/_app/about.tsx`.
+- About page UI: `src/pages/about/AboutPage.tsx`.
+- Page-local components: `src/pages/login/login-form.tsx`, `src/pages/login/login-form.stories.tsx`.
 
 ### 2) Implement the route component
 
@@ -29,6 +33,25 @@ Examples:
 - Use `<Outlet />` in layout routes to render child content.
 - Prefer `Link`, `useNavigate`, `useRouterState`, and `Route.useParams()` from `@tanstack/react-router` instead of manual URL handling.
 - If auth gating is required, read the session atom via `useStore` and redirect to `/login` when signed out.
+- Keep page components presentation-focused. If a page needs route-owned state such as params, search, loader data, or route-scoped navigation, create a wrapper `*Route` component in the route file, read the route state there, and pass plain props into `PageNamePage`.
+
+Example:
+
+```tsx
+import { createFileRoute } from '@tanstack/react-router'
+
+import { ProductPage } from '../pages/product/ProductPage'
+
+export const Route = createFileRoute('/products/$productId')({
+	component: ProductRoute,
+})
+
+function ProductRoute(): React.JSX.Element {
+	const { productId } = Route.useParams()
+
+	return <ProductPage productId={productId} />
+}
+```
 
 ### 3) Keep file-based routing in sync
 
@@ -37,4 +60,4 @@ Examples:
 
 ### 4) Verify types
 
-- Run `yarn check:types` after changes.
+- Run `pnpm --filter react-reatom-shadcn check:types` after changes.

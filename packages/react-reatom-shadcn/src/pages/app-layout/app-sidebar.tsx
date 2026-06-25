@@ -2,8 +2,12 @@
 
 import * as React from 'react'
 
-import { NavMain, type AppSidebarLinkRenderer, type AppSidebarNavItem } from '@/components/nav-main'
-import { NavUser } from '@/components/nav-user'
+import {
+  NavMain,
+  type AppSidebarLinkRenderer,
+  type AppSidebarNavItem,
+} from '@/pages/app-layout/nav-main'
+import { NavUser } from '@/pages/app-layout/nav-user'
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +24,7 @@ export type {
   AppSidebarLinkProps,
   AppSidebarLinkRenderer,
   AppSidebarNavItem,
-} from '@/components/nav-main'
+} from '@/pages/app-layout/nav-main'
 
 export type AppSidebarProps = React.ComponentProps<typeof Sidebar> & {
   navItems: AppSidebarNavItem[]
