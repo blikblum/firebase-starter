@@ -23,7 +23,15 @@ function isRemoteDataEnabled() {
   return import.meta.env.VITE_REMOTE_DATA === 'true'
 }
 
-if (window.location.hostname === 'localhost' && !isRemoteDataEnabled()) {
+function isLocalhost() {
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
+}
+
+function shouldUseEmulators() {
+  return isLocalhost() && !isRemoteDataEnabled()
+}
+
+if (shouldUseEmulators()) {
   connectFirestoreEmulator(db, 'localhost', 8080)
   connectFunctionsEmulator(getFunctions(), 'localhost', 5001)
   connectAuthEmulator(getAuth(), 'http://localhost:9099', { disableWarnings: true })

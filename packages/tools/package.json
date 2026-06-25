@@ -7,6 +7,7 @@
     "populate:data": "node --loader ts-node/esm src/populateData.ts"
   },
   "dependencies": {
+    "base": "workspace:*",
     "firebase-admin": "^12.0.0"
   },
   "devDependencies": {

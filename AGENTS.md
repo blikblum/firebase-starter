@@ -8,7 +8,7 @@ It contains common code in `packages/base/` and `packages/tools/`, and different
 
 Each app has its own architectural patterns / stack and are self contained, running independently of each other.
 
-- `packages/base/`: shared configuration and code, currently including `firebase.config.ts`.
+- `packages/base/`: shared configuration and code (domain types and respective functions).
 - `packages/tools/`: development and data scripts, such as `src/populateData.ts`.
 - `packages/react-reatom-shadcn/`: React app using Vite, TanStack Router, Reatom, Tailwind CSS, and shadcn-style UI.
 

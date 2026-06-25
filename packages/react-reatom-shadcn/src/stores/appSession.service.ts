@@ -48,14 +48,10 @@ export function listenToAuthStateChanges(): void {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       const idTokenResult = await user.getIdTokenResult()
-      const manager = idTokenResult.claims?.manager
-      if (!manager) {
-        await signOut('Acesso não autorizado')
-
-        return
+      const userRoles: AppUserRole[] = []
+      if (idTokenResult.claims?.manager) {
+        userRoles.push('manager')
       }
-
-      const userRoles: AppUserRole[] = ['manager']
       if (idTokenResult.claims?.owner) {
         userRoles.push('owner')
       }

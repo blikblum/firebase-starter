@@ -12,7 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppMoviesRouteImport } from './routes/_app/movies'
 import { Route as AppAboutRouteImport } from './routes/_app/about'
+import { Route as AppMoviesNewRouteImport } from './routes/_app/movies.new'
+import { Route as AppMoviesMovieIdRouteImport } from './routes/_app/movies.$movieId'
+import { Route as AppMoviesMovieIdEditRouteImport } from './routes/_app/movies.$movieId.edit'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -28,35 +32,90 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppMoviesRoute = AppMoviesRouteImport.update({
+  id: '/movies',
+  path: '/movies',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppAboutRoute = AppAboutRouteImport.update({
   id: '/about',
   path: '/about',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const AppMoviesNewRoute = AppMoviesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppMoviesRoute,
+} as any)
+const AppMoviesMovieIdRoute = AppMoviesMovieIdRouteImport.update({
+  id: '/$movieId',
+  path: '/$movieId',
+  getParentRoute: () => AppMoviesRoute,
+} as any)
+const AppMoviesMovieIdEditRoute = AppMoviesMovieIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => AppMoviesMovieIdRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/about': typeof AppAboutRoute
+  '/movies': typeof AppMoviesRouteWithChildren
+  '/movies/$movieId': typeof AppMoviesMovieIdRouteWithChildren
+  '/movies/new': typeof AppMoviesNewRoute
+  '/movies/$movieId/edit': typeof AppMoviesMovieIdEditRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/about': typeof AppAboutRoute
+  '/movies': typeof AppMoviesRouteWithChildren
   '/': typeof AppIndexRoute
+  '/movies/$movieId': typeof AppMoviesMovieIdRouteWithChildren
+  '/movies/new': typeof AppMoviesNewRoute
+  '/movies/$movieId/edit': typeof AppMoviesMovieIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/_app/about': typeof AppAboutRoute
+  '/_app/movies': typeof AppMoviesRouteWithChildren
   '/_app/': typeof AppIndexRoute
+  '/_app/movies/$movieId': typeof AppMoviesMovieIdRouteWithChildren
+  '/_app/movies/new': typeof AppMoviesNewRoute
+  '/_app/movies/$movieId/edit': typeof AppMoviesMovieIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/about'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/about'
+    | '/movies'
+    | '/movies/$movieId'
+    | '/movies/new'
+    | '/movies/$movieId/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/about' | '/'
-  id: '__root__' | '/_app' | '/login' | '/_app/about' | '/_app/'
+  to:
+    | '/login'
+    | '/about'
+    | '/movies'
+    | '/'
+    | '/movies/$movieId'
+    | '/movies/new'
+    | '/movies/$movieId/edit'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/login'
+    | '/_app/about'
+    | '/_app/movies'
+    | '/_app/'
+    | '/_app/movies/$movieId'
+    | '/_app/movies/new'
+    | '/_app/movies/$movieId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -87,6 +146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/movies': {
+      id: '/_app/movies'
+      path: '/movies'
+      fullPath: '/movies'
+      preLoaderRoute: typeof AppMoviesRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/about': {
       id: '/_app/about'
       path: '/about'
@@ -94,16 +160,64 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAboutRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/movies/new': {
+      id: '/_app/movies/new'
+      path: '/new'
+      fullPath: '/movies/new'
+      preLoaderRoute: typeof AppMoviesNewRouteImport
+      parentRoute: typeof AppMoviesRoute
+    }
+    '/_app/movies/$movieId': {
+      id: '/_app/movies/$movieId'
+      path: '/$movieId'
+      fullPath: '/movies/$movieId'
+      preLoaderRoute: typeof AppMoviesMovieIdRouteImport
+      parentRoute: typeof AppMoviesRoute
+    }
+    '/_app/movies/$movieId/edit': {
+      id: '/_app/movies/$movieId/edit'
+      path: '/edit'
+      fullPath: '/movies/$movieId/edit'
+      preLoaderRoute: typeof AppMoviesMovieIdEditRouteImport
+      parentRoute: typeof AppMoviesMovieIdRoute
+    }
   }
 }
 
+interface AppMoviesMovieIdRouteChildren {
+  AppMoviesMovieIdEditRoute: typeof AppMoviesMovieIdEditRoute
+}
+
+const AppMoviesMovieIdRouteChildren: AppMoviesMovieIdRouteChildren = {
+  AppMoviesMovieIdEditRoute: AppMoviesMovieIdEditRoute,
+}
+
+const AppMoviesMovieIdRouteWithChildren =
+  AppMoviesMovieIdRoute._addFileChildren(AppMoviesMovieIdRouteChildren)
+
+interface AppMoviesRouteChildren {
+  AppMoviesMovieIdRoute: typeof AppMoviesMovieIdRouteWithChildren
+  AppMoviesNewRoute: typeof AppMoviesNewRoute
+}
+
+const AppMoviesRouteChildren: AppMoviesRouteChildren = {
+  AppMoviesMovieIdRoute: AppMoviesMovieIdRouteWithChildren,
+  AppMoviesNewRoute: AppMoviesNewRoute,
+}
+
+const AppMoviesRouteWithChildren = AppMoviesRoute._addFileChildren(
+  AppMoviesRouteChildren,
+)
+
 interface AppRouteRouteChildren {
   AppAboutRoute: typeof AppAboutRoute
+  AppMoviesRoute: typeof AppMoviesRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAboutRoute: AppAboutRoute,
+  AppMoviesRoute: AppMoviesRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
 }
 

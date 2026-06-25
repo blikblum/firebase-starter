@@ -178,6 +178,9 @@ importers:
 
   packages/tools:
     dependencies:
+      base:
+        specifier: workspace:*
+        version: link:../base
       firebase-admin:
         specifier: ^12.0.0
         version: 12.7.0

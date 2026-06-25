@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { HomeIcon, InfoIcon } from 'lucide-react'
+import { FilmIcon, InfoIcon } from 'lucide-react'
 import { fn } from 'storybook/test'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +9,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/s
 import { AppSidebar } from './app-sidebar'
 
 const navItems = [
-  { label: 'Home', to: '/', icon: <HomeIcon />, isActive: true },
+  { label: 'Movies', to: '/movies', icon: <FilmIcon />, isActive: true },
   { label: 'About', to: '/about', icon: <InfoIcon />, isActive: false },
 ]
 
@@ -71,7 +71,7 @@ export const Default: Story = {}
 export const AboutActive: Story = {
   args: {
     navItems: [
-      { label: 'Home', to: '/', icon: <HomeIcon />, isActive: false },
+      { label: 'Movies', to: '/movies', icon: <FilmIcon />, isActive: false },
       { label: 'About', to: '/about', icon: <InfoIcon />, isActive: true },
     ],
   },

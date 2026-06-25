@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { Link, Outlet, useNavigate } from '@tanstack/react-router'
-import { HomeIcon, InfoIcon } from 'lucide-react'
+import { FilmIcon, InfoIcon } from 'lucide-react'
 
 import type {
   AppSidebarLinkProps,
@@ -32,7 +32,12 @@ export function AppLayoutPage({ pathname }: { pathname: string }): React.JSX.Ele
   }
 
   const navItems: AppSidebarNavItem[] = [
-    { label: 'Home', to: '/', icon: <HomeIcon />, isActive: pathname === '/' },
+    {
+      label: 'Movies',
+      to: '/movies',
+      icon: <FilmIcon />,
+      isActive: pathname.startsWith('/movies'),
+    },
     { label: 'About', to: '/about', icon: <InfoIcon />, isActive: pathname === '/about' },
   ]
   const activeNavItem = navItems.find((item) => item.isActive)

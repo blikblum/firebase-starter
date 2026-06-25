@@ -15,6 +15,7 @@ This is a starter template for building React applications using Reatom for stat
 - `src/helpers`: Utility functions
 - `src/api`: Business logic types and functions.
 - `src/stores`: Reatom atoms and related services
+- `src/pages`: Page components for each route
 - `src/routes`: Application routes
 - `public/` and `src/assets/`: static assets.
 

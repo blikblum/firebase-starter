@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth, type UpdateRequest } from 'firebase-admin/auth'
+import { getFirestore } from 'firebase-admin/firestore'
+import { createMovieDocument, type MovieInput } from 'base/movies'
 
 
 process.env.GCLOUD_PROJECT = 'demo-no-project'
@@ -11,6 +13,10 @@ type SeedUser = {
   password: string
   emailVerified?: boolean
   customClaims?: Record<string, unknown>
+}
+
+type SeedMovie = MovieInput & {
+  id: string
 }
 
 const seedUsers: SeedUser[] = [
@@ -37,12 +43,94 @@ const seedUsers: SeedUser[] = [
   },
 ]
 
+const seedMoviesByUser: Record<string, SeedMovie[]> = {
+  user_alice: [
+    {
+      id: 'arrival',
+      title: 'Arrival',
+      releaseYear: 2016,
+      director: 'Denis Villeneuve',
+      genres: ['Drama', 'Sci-Fi'],
+      runtimeMinutes: 116,
+      posterUrl: 'https://image.tmdb.org/t/p/w500/x2FJsf1ElAgr63Y3PNPtJrcmpoe.jpg',
+      rating: 9,
+      watched: true,
+      summary: 'A linguist works with the military to communicate with alien visitors.',
+      notes: 'Rewatch for the sound design and structure.',
+    },
+    {
+      id: 'spirited-away',
+      title: 'Spirited Away',
+      releaseYear: 2001,
+      director: 'Hayao Miyazaki',
+      genres: ['Animation', 'Adventure', 'Fantasy'],
+      runtimeMinutes: 125,
+      posterUrl: 'https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg',
+      rating: 10,
+      watched: true,
+      summary: 'A young girl enters a spirit world and works to free her parents.',
+      notes: 'Good family night pick.',
+    },
+  ],
+  user_ben: [
+    {
+      id: 'the-batman',
+      title: 'The Batman',
+      releaseYear: 2022,
+      director: 'Matt Reeves',
+      genres: ['Crime', 'Drama', 'Mystery'],
+      runtimeMinutes: 176,
+      posterUrl: 'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+      rating: 8,
+      watched: true,
+      summary: 'Batman investigates corruption while tracking a serial killer in Gotham.',
+      notes: 'Use as a reference for noir mood.',
+    },
+    {
+      id: 'dune-part-two',
+      title: 'Dune: Part Two',
+      releaseYear: 2024,
+      director: 'Denis Villeneuve',
+      genres: ['Adventure', 'Drama', 'Sci-Fi'],
+      runtimeMinutes: 166,
+      posterUrl: 'https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg',
+      rating: 9,
+      watched: true,
+      summary: 'Paul Atreides unites with Chani and the Fremen while seeking revenge.',
+      notes: 'Large-screen rewatch.',
+    },
+  ],
+  user_chris: [
+    {
+      id: 'past-lives',
+      title: 'Past Lives',
+      releaseYear: 2023,
+      director: 'Celine Song',
+      genres: ['Drama', 'Romance'],
+      runtimeMinutes: 106,
+      posterUrl: 'https://image.tmdb.org/t/p/w500/k3waqVXSnvCZWfJYNtdamTgTtTA.jpg',
+      rating: 8.5,
+      watched: false,
+      summary: 'Two childhood friends reconnect decades later in New York.',
+      notes: 'Watch this weekend.',
+    },
+  ],
+}
+
 function ensureAuthEmulatorHost(): string {
   if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
     process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099'
   }
 
   return process.env.FIREBASE_AUTH_EMULATOR_HOST
+}
+
+function ensureFirestoreEmulatorHost(): string {
+  if (!process.env.FIRESTORE_EMULATOR_HOST) {
+    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080'
+  }
+
+  return process.env.FIRESTORE_EMULATOR_HOST
 }
 
 function getProjectId(): string {
@@ -85,7 +173,7 @@ async function upsertUser(auth: ReturnType<typeof getAuth>, user: SeedUser) {
   try {
     const created = await auth.createUser(userData)
     await maybeSetCustomClaims(auth, created.uid, user)
-    return 'created'
+    return { action: 'created', uid: created.uid }
   } catch (error) {
     if (!isFirebaseError(error)) {
       throw error
@@ -109,12 +197,32 @@ async function upsertUser(auth: ReturnType<typeof getAuth>, user: SeedUser) {
 
     await auth.updateUser(existingUid, update)
     await maybeSetCustomClaims(auth, existingUid, user)
-    return 'updated'
+    return { action: 'updated', uid: existingUid }
+  }
+}
+
+async function seedMovies(user: SeedUser, uid: string): Promise<void> {
+  const firestore = getFirestore()
+  const seedMovies = seedMoviesByUser[user.uid] ?? []
+
+  for (const [index, movie] of seedMovies.entries()) {
+    const { id, ...movieInput } = movie
+    const seededAt = new Date(Date.UTC(2026, 0, index + 1, 12))
+
+    await firestore
+      .collection('users')
+      .doc(uid)
+      .collection('movies')
+      .doc(id)
+      .set(createMovieDocument(movieInput, seededAt), { merge: true })
+
+    console.log(`[tools] seeded movie for ${user.email}: ${movie.title}`)
   }
 }
 
 async function main() {
   const emulatorHost = ensureAuthEmulatorHost()
+  const firestoreEmulatorHost = ensureFirestoreEmulatorHost()
   const projectId = getProjectId()
 
   initializeApp({ projectId })
@@ -122,11 +230,13 @@ async function main() {
   const auth = getAuth()
 
   console.log(`[tools] Using Firebase Auth emulator at ${emulatorHost}`)
+  console.log(`[tools] Using Firestore emulator at ${firestoreEmulatorHost}`)
   console.log(`[tools] Seeding users into project "${projectId}"`)
 
   for (const user of seedUsers) {
-    const action = await upsertUser(auth, user)
+    const { action, uid } = await upsertUser(auth, user)
     console.log(`[tools] ${action}: ${user.email}`)
+    await seedMovies(user, uid)
   }
 }
 
