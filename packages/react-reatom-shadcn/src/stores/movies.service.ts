@@ -2,30 +2,29 @@ import {
   addDoc,
   collection,
   doc,
+  getDocs,
   getFirestore,
   limit,
   onSnapshot,
   orderBy,
   query,
-  startAt,
-  endAt,
   updateDoc,
   type CollectionReference,
   type DocumentData,
-  type Query,
   type QueryDocumentSnapshot,
   type Unsubscribe,
 } from 'firebase/firestore'
+import { documentMatches, execute, field, type PipelineResult } from 'firebase/firestore/pipelines'
 import { getAuth } from 'firebase/auth'
 import {
   createMovieDocument,
   createMovieUpdateDocument,
-  normalizeMovieSearchText,
   validateMovieInput,
   type Movie,
   type MovieDocument,
   type MovieInput,
 } from 'base/movies'
+import { shouldUseEmulators } from '../setup/firebase'
 
 import {
   addMovieStateAtom,
@@ -35,8 +34,8 @@ import {
   moviesSearchAtom,
 } from './movies'
 
-let unsubscribeMovies: Unsubscribe | undefined
 let unsubscribeMovieDetails: Unsubscribe | undefined
+let latestMoviesRequest = 0
 
 function getCurrentUserId(): string {
   const uid = getAuth().currentUser?.uid
@@ -59,25 +58,41 @@ function toMovie(snapshot: QueryDocumentSnapshot<DocumentData>): Movie {
   }
 }
 
-function getMoviesQuery(userId: string): Query<DocumentData> {
-  const moviesCollection = getMoviesCollection(userId)
-  const search = normalizeMovieSearchText(moviesSearchAtom())
-
-  if (!search) {
-    return query(moviesCollection, orderBy('titleSearch', 'asc'), limit(50))
+function toMovieSearchResult(result: PipelineResult<DocumentData>): Movie {
+  if (!result.id) {
+    throw new Error('Movie search returned a result without a document ID.')
   }
 
-  return query(
-    moviesCollection,
-    orderBy('titleSearch', 'asc'),
-    startAt(search),
-    endAt(`${search}\uf8ff`),
-    limit(50),
-  )
+  return {
+    ...(result.data() as MovieDocument),
+    id: result.id,
+  }
 }
 
-export function listenToMovies(): Unsubscribe {
-  unsubscribeMovies?.()
+function matchesMovieTitle(movie: Movie, search: string): boolean {
+  const title = movie.title.toLocaleLowerCase()
+  const terms = search.toLocaleLowerCase().split(/\s+/).filter(Boolean)
+
+  return terms.every((term) => title.includes(term))
+}
+
+async function searchMoviesInEmulator(
+  moviesCollection: CollectionReference<DocumentData>,
+  search: string,
+): Promise<Movie[]> {
+  const snapshot = await getDocs(query(moviesCollection, orderBy('title', 'asc')))
+
+  return snapshot.docs
+    .map(toMovie)
+    .filter((movie) => matchesMovieTitle(movie, search))
+    .slice(0, 50)
+}
+
+
+
+export async function fetchMovies(): Promise<void> {
+  const requestId = ++latestMoviesRequest
+  const search = moviesSearchAtom().trim()
 
   moviesListAtom.set((state) => ({
     ...state,
@@ -86,34 +101,45 @@ export function listenToMovies(): Unsubscribe {
   }))
 
   try {
-    unsubscribeMovies = onSnapshot(getMoviesQuery(getCurrentUserId()), {
-      next(snapshot) {
-        moviesListAtom.set({
-          data: snapshot.docs.map(toMovie),
-          loading: false,
-          error: undefined,
-        })
-      },
-      error(error) {
-        moviesListAtom.set({
-          data: [],
-          loading: false,
-          error: error.message,
-        })
-      },
+    const moviesCollection = getMoviesCollection(getCurrentUserId())
+    const data = search
+      ? shouldUseEmulators()
+        ? await searchMoviesInEmulator(moviesCollection, search)
+        : (
+          await execute(
+            getFirestore()
+              .pipeline()
+              .collection(moviesCollection.path)
+              .search({
+                query: documentMatches(search),
+                sort: field('title').ascending(),
+                limit: 50,
+              }),
+          )
+        ).results.map(toMovieSearchResult)
+      : (await getDocs(query(moviesCollection, orderBy('title', 'asc'), limit(50)))).docs.map(
+        toMovie,
+      )
+
+    if (requestId !== latestMoviesRequest || moviesSearchAtom().trim() !== search) {
+      return
+    }
+
+    moviesListAtom.set({
+      data,
+      loading: false,
+      error: undefined,
     })
   } catch (error) {
+    if (requestId !== latestMoviesRequest || moviesSearchAtom().trim() !== search) {
+      return
+    }
+
     moviesListAtom.set({
       data: [],
       loading: false,
       error: error instanceof Error ? error.message : `${error}`,
     })
-    unsubscribeMovies = undefined
-  }
-
-  return () => {
-    unsubscribeMovies?.()
-    unsubscribeMovies = undefined
   }
 }
 
@@ -137,9 +163,9 @@ export function listenToMovieDetails(movieId: string): Unsubscribe {
           movieId,
           data: snapshot.exists()
             ? {
-                ...(snapshot.data() as MovieDocument),
-                id: snapshot.id,
-              }
+              ...(snapshot.data() as MovieDocument),
+              id: snapshot.id,
+            }
             : undefined,
           loading: false,
           error: undefined,
@@ -232,7 +258,7 @@ export async function updateMovie(movieId: string, input: MovieInput): Promise<b
   try {
     const movieRef = doc(getMoviesCollection(getCurrentUserId()), movieId)
 
-    await updateDoc(movieRef, createMovieUpdateDocument(input))
+    await updateDoc(movieRef, { ...createMovieUpdateDocument(input) })
 
     editMovieStateAtom.set({
       saving: false,

@@ -19,15 +19,15 @@ const db = initializeFirestore(app, {
   ignoreUndefinedProperties: true,
 })
 
-function isRemoteDataEnabled() {
+function isRemoteDataEnabled(): boolean {
   return import.meta.env.VITE_REMOTE_DATA === 'true'
 }
 
-function isLocalhost() {
+function isLocalhost(): boolean {
   return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)
 }
 
-function shouldUseEmulators() {
+export function shouldUseEmulators(): boolean {
   return isLocalhost() && !isRemoteDataEnabled()
 }
 

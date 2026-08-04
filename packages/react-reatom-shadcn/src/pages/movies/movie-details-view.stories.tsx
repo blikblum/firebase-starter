@@ -6,7 +6,6 @@ import { MovieDetailsView } from './movie-details-view'
 const movie: Movie = {
   id: 'arrival',
   title: 'Arrival',
-  titleSearch: 'arrival',
   releaseYear: 2016,
   director: 'Denis Villeneuve',
   genres: ['Drama', 'Sci-Fi'],

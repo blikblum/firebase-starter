@@ -8,7 +8,6 @@ const movies: Movie[] = [
   {
     id: 'arrival',
     title: 'Arrival',
-    titleSearch: 'arrival',
     releaseYear: 2016,
     director: 'Denis Villeneuve',
     genres: ['Drama', 'Sci-Fi'],
@@ -24,7 +23,6 @@ const movies: Movie[] = [
   {
     id: 'portrait',
     title: 'Portrait of a Lady on Fire',
-    titleSearch: 'portrait of a lady on fire',
     releaseYear: 2019,
     director: 'Celine Sciamma',
     genres: ['Drama', 'Romance'],

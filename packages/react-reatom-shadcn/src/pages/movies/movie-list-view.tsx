@@ -39,6 +39,7 @@ export function MovieListView({
   renderLink = defaultRenderMovieLink,
 }: MovieListViewProps): React.JSX.Element {
   const hasMovies = movies.length > 0
+  const hasSearch = search.trim().length > 0
 
   return (
     <div className="space-y-6">
@@ -83,10 +84,10 @@ export function MovieListView({
             <EmptyMedia variant="icon">
               <FilmIcon />
             </EmptyMedia>
-            <EmptyTitle>{search ? 'No matching movies' : 'No movies yet'}</EmptyTitle>
+            <EmptyTitle>{hasSearch ? 'No matching movies' : 'No movies yet'}</EmptyTitle>
             <EmptyDescription>
-              {search
-                ? 'Try a different title prefix.'
+              {hasSearch
+                ? 'Try a different title or keyword.'
                 : 'Add the first movie to start the collection.'}
             </EmptyDescription>
           </EmptyHeader>
