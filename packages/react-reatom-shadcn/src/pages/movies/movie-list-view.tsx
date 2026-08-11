@@ -27,6 +27,7 @@ export interface MovieListViewProps {
   movies: Movie[]
   search: string
   loading: boolean
+  hasLoaded: boolean
   error?: string
   viewMode: MovieListViewMode
   onSearchChange: (search: string) => void
@@ -40,6 +41,7 @@ export function MovieListView({
   movies,
   search,
   loading,
+  hasLoaded,
   error,
   viewMode,
   onSearchChange,
@@ -50,6 +52,7 @@ export function MovieListView({
 }: MovieListViewProps): React.JSX.Element {
   const hasMovies = movies.length > 0
   const hasSearch = search.trim().length > 0
+  const showInitialLoading = useDelayedInitialLoading(loading && !hasLoaded)
   const movieTableColumns = React.useMemo(
     () => createMovieTableColumns({ getMovieHref, renderLink }),
     [getMovieHref, renderLink],
@@ -103,20 +106,20 @@ export function MovieListView({
         </ToggleGroup>
       </div>
 
-      {error ? (
+      {!showInitialLoading && error ? (
         <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       ) : null}
 
-      {loading && !hasMovies ? (
+      {showInitialLoading ? (
         <div className="grid gap-4 md:grid-cols-2">
           <Skeleton className="h-44" />
           <Skeleton className="h-44" />
         </div>
       ) : null}
 
-      {!loading && !hasMovies ? (
+      {!showInitialLoading && hasLoaded && !hasMovies ? (
         <Empty className="border">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -138,7 +141,7 @@ export function MovieListView({
         </Empty>
       ) : null}
 
-      {hasMovies && viewMode === 'cards' ? (
+      {!showInitialLoading && hasMovies && viewMode === 'cards' ? (
         <div className="grid gap-4 md:grid-cols-2">
           {movies.map((movie) => (
             <Card key={movie.id} className="overflow-hidden">
@@ -178,9 +181,47 @@ export function MovieListView({
         </div>
       ) : null}
 
-      {hasMovies && viewMode === 'table' ? (
+      {!showInitialLoading && hasMovies && viewMode === 'table' ? (
         <DataTable columns={movieTableColumns} data={movies} showColumnToggle />
       ) : null}
     </div>
   )
+}
+
+const INITIAL_LOADING_DELAY_MS = 200
+const MINIMUM_LOADING_DURATION_MS = 300
+
+function useDelayedInitialLoading(pending: boolean): boolean {
+  const [visible, setVisible] = React.useState(false)
+  const shownAtRef = React.useRef<number | undefined>(undefined)
+
+  React.useEffect(() => {
+    let timeoutId: number | undefined
+
+    if (pending && !visible) {
+      timeoutId = window.setTimeout(() => {
+        shownAtRef.current = window.performance.now()
+        setVisible(true)
+      }, INITIAL_LOADING_DELAY_MS)
+    } else if (!pending && visible) {
+      const shownAt = shownAtRef.current ?? window.performance.now()
+      const elapsed = window.performance.now() - shownAt
+      const remaining = Math.max(0, MINIMUM_LOADING_DURATION_MS - elapsed)
+
+      timeoutId = window.setTimeout(() => {
+        shownAtRef.current = undefined
+        setVisible(false)
+      }, remaining)
+    } else if (!pending) {
+      shownAtRef.current = undefined
+    }
+
+    return () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId)
+      }
+    }
+  }, [pending, visible])
+
+  return visible
 }

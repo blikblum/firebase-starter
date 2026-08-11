@@ -4,6 +4,7 @@ import type { Movie } from 'base/movies'
 export interface MoviesListState {
   data: Movie[]
   loading: boolean
+  hasLoaded: boolean
   error?: string
 }
 
@@ -31,6 +32,7 @@ export const moviesListAtom = atom<MoviesListState>(
   {
     data: [],
     loading: false,
+    hasLoaded: false,
     error: undefined,
   },
   'moviesList',

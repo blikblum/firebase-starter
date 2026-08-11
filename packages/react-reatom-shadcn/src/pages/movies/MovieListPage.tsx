@@ -32,6 +32,7 @@ export function MovieListPage(): React.JSX.Element {
       movies={moviesState.data}
       search={search}
       loading={moviesState.loading}
+      hasLoaded={moviesState.hasLoaded}
       error={moviesState.error}
       viewMode={viewMode}
       addMovieHref="/movies/new"

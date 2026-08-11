@@ -128,6 +128,7 @@ export async function fetchMovies(): Promise<void> {
     moviesListAtom.set({
       data,
       loading: false,
+      hasLoaded: true,
       error: undefined,
     })
   } catch (error) {
@@ -138,6 +139,7 @@ export async function fetchMovies(): Promise<void> {
     moviesListAtom.set({
       data: [],
       loading: false,
+      hasLoaded: true,
       error: error instanceof Error ? error.message : `${error}`,
     })
   }

@@ -71,6 +71,7 @@ const meta = {
     movies,
     search: '',
     loading: false,
+    hasLoaded: true,
     error: undefined,
     viewMode: 'cards',
     addMovieHref: '/movies/new',
@@ -106,12 +107,26 @@ export const Loading: Story = {
   args: {
     movies: [],
     loading: true,
+    hasLoaded: false,
   },
 }
 
 export const Empty: Story = {
   args: {
     movies: [],
+  },
+}
+
+export const EmptyWhileSearching: Story = {
+  args: {
+    movies: [],
+    search: 'missing movie',
+    loading: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(canvas.getByText('No matching movies')).toBeVisible()
   },
 }
 
