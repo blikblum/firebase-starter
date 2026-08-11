@@ -1,6 +1,8 @@
-import { FilmIcon, PlusIcon, SearchIcon } from 'lucide-react'
+import * as React from 'react'
+import { FilmIcon, LayoutGridIcon, PlusIcon, SearchIcon, Table2Icon } from 'lucide-react'
 import type { Movie } from 'base/movies'
 
+import { DataTable } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -14,15 +16,21 @@ import {
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 import { defaultRenderMovieLink, type MovieLinkRenderer } from './movie-links'
+import { createMovieTableColumns } from './movie-table-columns'
+
+export type MovieListViewMode = 'cards' | 'table'
 
 export interface MovieListViewProps {
   movies: Movie[]
   search: string
   loading: boolean
   error?: string
+  viewMode: MovieListViewMode
   onSearchChange: (search: string) => void
+  onViewModeChange: (viewMode: MovieListViewMode) => void
   getMovieHref: (movieId: string) => string
   addMovieHref: string
   renderLink?: MovieLinkRenderer
@@ -33,13 +41,19 @@ export function MovieListView({
   search,
   loading,
   error,
+  viewMode,
   onSearchChange,
+  onViewModeChange,
   getMovieHref,
   addMovieHref,
   renderLink = defaultRenderMovieLink,
 }: MovieListViewProps): React.JSX.Element {
   const hasMovies = movies.length > 0
   const hasSearch = search.trim().length > 0
+  const movieTableColumns = React.useMemo(
+    () => createMovieTableColumns({ getMovieHref, renderLink }),
+    [getMovieHref, renderLink],
+  )
 
   return (
     <div className="space-y-6">
@@ -54,15 +68,39 @@ export function MovieListView({
         </Button>
       </div>
 
-      <div className="relative">
-        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          type="search"
-          placeholder="Search by title"
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-        />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            type="search"
+            placeholder="Search by title"
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
+        </div>
+        <ToggleGroup
+          aria-label="Movie view"
+          variant="outline"
+          spacing={0}
+          value={[viewMode]}
+          onValueChange={(value) => {
+            const nextViewMode = value[0]
+
+            if (nextViewMode === 'cards' || nextViewMode === 'table') {
+              onViewModeChange(nextViewMode)
+            }
+          }}
+        >
+          <ToggleGroupItem value="cards" aria-label="Show movies as cards">
+            <LayoutGridIcon />
+            <span className="hidden sm:inline">Cards</span>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="table" aria-label="Show movies as a table">
+            <Table2Icon />
+            <span className="hidden sm:inline">Table</span>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {error ? (
@@ -100,7 +138,7 @@ export function MovieListView({
         </Empty>
       ) : null}
 
-      {hasMovies ? (
+      {hasMovies && viewMode === 'cards' ? (
         <div className="grid gap-4 md:grid-cols-2">
           {movies.map((movie) => (
             <Card key={movie.id} className="overflow-hidden">
@@ -137,6 +175,10 @@ export function MovieListView({
             </Card>
           ))}
         </div>
+      ) : null}
+
+      {hasMovies && viewMode === 'table' ? (
+        <DataTable columns={movieTableColumns} data={movies} showColumnToggle />
       ) : null}
     </div>
   )

@@ -1,8 +1,9 @@
+import * as React from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { Movie } from 'base/movies'
 import { fn } from 'storybook/test'
 
-import { MovieListView } from './movie-list-view'
+import { MovieListView, type MovieListViewProps } from './movie-list-view'
 
 const movies: Movie[] = [
   {
@@ -37,17 +38,45 @@ const movies: Movie[] = [
   },
 ]
 
+const tableMovies: Movie[] = Array.from({ length: 12 }, (_, index) => {
+  const movie = movies[index % movies.length]
+
+  return {
+    ...movie,
+    id: `${movie.id}-${index + 1}`,
+    title: `${movie.title} ${index + 1}`,
+  }
+})
+
+function InteractiveMovieListView(args: MovieListViewProps): React.JSX.Element {
+  const [viewMode, setViewMode] = React.useState(args.viewMode)
+
+  return (
+    <MovieListView
+      {...args}
+      viewMode={viewMode}
+      onViewModeChange={(nextViewMode) => {
+        setViewMode(nextViewMode)
+        args.onViewModeChange(nextViewMode)
+      }}
+    />
+  )
+}
+
 const meta = {
   title: 'Pages/Movies/MovieListView',
   component: MovieListView,
+  render: (args) => <InteractiveMovieListView {...args} />,
   args: {
     movies,
     search: '',
     loading: false,
     error: undefined,
+    viewMode: 'cards',
     addMovieHref: '/movies/new',
     getMovieHref: (movieId: string) => `/movies/${movieId}`,
     onSearchChange: fn(),
+    onViewModeChange: fn(),
   },
 } satisfies Meta<typeof MovieListView>
 
@@ -55,6 +84,13 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
+
+export const TableView: Story = {
+  args: {
+    movies: tableMovies,
+    viewMode: 'table',
+  },
+}
 
 export const Loading: Story = {
   args: {
