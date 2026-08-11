@@ -12,6 +12,10 @@
     "functions"
   ],
   "scripts": {
-    "start-emulators": "firebase emulators:start --inspect-functions --only firestore,functions,auth"
+    "dev": "turbo run dev:app --filter",
+    "start-emulators": "turbo run dev:emulators --filter=tools"
+  },
+  "devDependencies": {
+    "turbo": "2.10.9"
   }
 }

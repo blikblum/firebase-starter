@@ -26,7 +26,8 @@ Each app has its own architectural patterns and stack and can run independently 
 Run commands from the repository root unless noted.
 
 - `pnpm install`: install workspace dependencies.
-- `pnpm start-emulators`: start Firebase auth, Firestore, and functions emulators.
+- `pnpm dev <app-filter>`: start one or more selected apps, Firebase Auth and Firestore emulators, and populate development data through Turborepo.
+- `pnpm start-emulators`: start only the Firebase Auth and Firestore emulators through Turborepo.
 - `pnpm --filter tools populate:data`: run the Firebase data population script.
 - `pnpm --filter base exec tsc --noEmit`: type-check the shared domain package.
 

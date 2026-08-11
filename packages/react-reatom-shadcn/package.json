@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "pnpm --dir ../.. run dev react-reatom-shadcn",
+    "dev:app": "vite",
     "build": "tsc -b && vite build",
     "check:types": "tsc --noEmit --pretty false",
     "lint": "eslint .",

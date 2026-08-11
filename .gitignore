@@ -119,6 +119,9 @@ dist
 # Firebase cache directory
 .firebase/
 
+# Turborepo cache directory
+.turbo/
+
 # TernJS port file
 .tern-port
 
