@@ -4,18 +4,18 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { AuthPageShell, type AuthLinkProps } from '@/components/auth-page-shell'
 import { ProfileLoadErrorCard } from '@/components/profile-load-error-card'
 import { useStore } from '@/helpers/reatom'
-import { LoginForm } from '@/pages/login/login-form'
+import { SignUpForm } from '@/pages/signup/signup-form'
 import { appSessionAtom } from '@/stores/appSession'
-import { signIn, signInWithGoogle, signOut } from '@/stores/appSession.service'
+import { signInWithGoogle, signOut, signUp } from '@/stores/appSession.service'
 import { userProfileAtom } from '@/stores/userProfile'
 import { listenToCurrentUserProfile } from '@/stores/userProfile.service'
 
 const RouterLink = (props: AuthLinkProps): React.ReactElement => <Link {...props} />
 
-export function LoginPage(): React.JSX.Element | null {
+export function SignupPage(): React.JSX.Element | null {
   const session = useStore(appSessionAtom)
   const profile = useStore(userProfileAtom)
-  const navigate = useNavigate({ from: '/login' })
+  const navigate = useNavigate({ from: '/signup' })
 
   React.useEffect(() => {
     if (!session.isAuthReady || !session.isSigned) {
@@ -49,11 +49,11 @@ export function LoginPage(): React.JSX.Element | null {
 
   return (
     <AuthPageShell>
-      <LoginForm
+      <SignUpForm
         busy={session.isSigning}
         error={session.error}
         onGoogleSignIn={signInWithGoogle}
-        onSubmit={signIn}
+        onSubmit={signUp}
         renderLink={RouterLink}
       />
     </AuthPageShell>

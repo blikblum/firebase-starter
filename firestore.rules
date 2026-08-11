@@ -2,8 +2,34 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/movies/{movieId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function isCurrentUser(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isValidProfileCreate(userId) {
+      let profile = request.resource.data;
+
+      return isCurrentUser(userId)
+        && request.auth.token.email_verified == true
+        && profile.keys().hasAll(['name', 'email', 'createdAt', 'updatedAt'])
+        && profile.keys().hasOnly(['name', 'email', 'createdAt', 'updatedAt'])
+        && profile.name is string
+        && profile.name.size() > 0
+        && profile.name.size() <= 100
+        && profile.email == request.auth.token.email
+        && profile.createdAt == request.time
+        && profile.updatedAt == request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isCurrentUser(userId);
+      allow list: if false;
+      allow create: if isValidProfileCreate(userId);
+      allow update, delete: if false;
+
+      match /movies/{movieId} {
+        allow read, write: if isCurrentUser(userId);
+      }
     }
 
     match /{document=**} {

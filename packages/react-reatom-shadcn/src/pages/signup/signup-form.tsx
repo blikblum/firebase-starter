@@ -1,9 +1,10 @@
 import * as React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
+import { z } from 'zod'
 
-import type { SignInInput } from '@/api/auth'
-import { signInInputSchema } from '@/api/auth'
+import type { SignUpInput } from '@/api/auth'
+import { signUpInputSchema } from '@/api/auth'
 import {
   defaultRenderAuthLink,
   type AuthLinkRenderer,
@@ -20,48 +21,51 @@ import {
 } from '@/components/ui/card'
 import { FieldError, FieldGroup, FieldSeparator } from '@/components/ui/field'
 
-export interface LoginFormProps {
+const signUpFormSchema = signUpInputSchema
+  .extend({
+    confirmPassword: z.string().min(1, 'Confirm your password.'),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: 'Passwords do not match.',
+    path: ['confirmPassword'],
+  })
+
+type SignUpFormValues = z.output<typeof signUpFormSchema>
+
+export interface SignUpFormProps {
   busy?: boolean
   error?: string
   onGoogleSignIn: () => void | Promise<void>
-  onSubmit: (input: SignInInput) => void | Promise<void>
+  onSubmit: (input: SignUpInput) => void | Promise<void>
   renderLink?: AuthLinkRenderer
-  showDevUser?: boolean
 }
 
-export function LoginForm({
+export function SignUpForm({
   busy = false,
   error,
   onGoogleSignIn,
   onSubmit,
   renderLink = defaultRenderAuthLink,
-  showDevUser = import.meta.env.DEV,
-}: LoginFormProps): React.JSX.Element {
-  const form = useForm<SignInInput>({
-    resolver: zodResolver(signInInputSchema),
+}: SignUpFormProps): React.JSX.Element {
+  const form = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpFormSchema),
     defaultValues: {
       email: '',
       password: '',
+      confirmPassword: '',
     },
   })
   const isBusy = busy || form.formState.isSubmitting
 
-  const handleSubmit = form.handleSubmit(async (values) => {
-    await onSubmit(values)
+  const handleSubmit = form.handleSubmit(async ({ email, password }) => {
+    await onSubmit({ email, password })
   })
-
-  const handlePopulateDevUser = (): void => {
-    form.reset({
-      email: 'ben@example.com',
-      password: 'password123',
-    })
-  }
 
   return (
     <Card className="w-full border-border/70 bg-card/90 backdrop-blur">
       <CardHeader>
-        <CardTitle>Sign in</CardTitle>
-        <CardDescription>Use Google or enter your email and password.</CardDescription>
+        <CardTitle>Create an account</CardTitle>
+        <CardDescription>Use Google or sign up with your email.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <GoogleAuthButton
@@ -73,48 +77,44 @@ export function LoginForm({
         <FormProvider {...form}>
           <form className="space-y-6" noValidate onSubmit={handleSubmit}>
             <FieldGroup>
-              <FormInput<SignInInput>
+              <FormInput<SignUpFormValues>
                 name="email"
                 label="Email"
-                id="login-email"
+                id="signup-email"
                 type="email"
                 placeholder="you@company.com"
                 autoComplete="email"
               />
-              <FormInput<SignInInput>
+              <FormInput<SignUpFormValues>
                 name="password"
                 label="Password"
-                id="login-password"
+                description="Use at least 8 characters. Spaces are preserved."
+                id="signup-password"
                 type="password"
-                placeholder="Your password"
-                autoComplete="current-password"
+                placeholder="Create a password"
+                autoComplete="new-password"
+              />
+              <FormInput<SignUpFormValues>
+                name="confirmPassword"
+                label="Confirm password"
+                id="signup-confirm-password"
+                type="password"
+                placeholder="Repeat your password"
+                autoComplete="new-password"
               />
               <FieldError>{error ?? null}</FieldError>
             </FieldGroup>
-            <div className="space-y-3">
-              <Button className="w-full" type="submit" disabled={isBusy}>
-                {isBusy ? 'Signing in...' : 'Sign in'}
-              </Button>
-              {showDevUser ? (
-                <Button
-                  className="w-full"
-                  type="button"
-                  variant="outline"
-                  disabled={isBusy}
-                  onClick={handlePopulateDevUser}
-                >
-                  Use dev user (ben@example.com)
-                </Button>
-              ) : null}
-            </div>
+            <Button className="w-full" type="submit" disabled={isBusy}>
+              {isBusy ? 'Creating account...' : 'Create account'}
+            </Button>
           </form>
         </FormProvider>
         <p className="text-center text-sm text-muted-foreground">
-          New here?{' '}
+          Already have an account?{' '}
           {renderLink({
-            to: '/signup',
+            to: '/login',
             className: 'font-medium text-primary underline-offset-4 hover:underline',
-            children: 'Create an account',
+            children: 'Sign in',
           })}
         </p>
       </CardContent>

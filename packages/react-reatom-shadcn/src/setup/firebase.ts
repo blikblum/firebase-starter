@@ -11,7 +11,7 @@ import {
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
 
 import { firebaseConfig } from 'base/firebase.config'
-import { listenToAuthStateChanges } from '../stores/appSession.service'
+import { initializeAuthSession } from '../stores/appSession.service'
 
 const app = initializeApp(firebaseConfig)
 
@@ -31,15 +31,26 @@ export function shouldUseEmulators(): boolean {
   return isLocalhost() && !isRemoteDataEnabled()
 }
 
+const auth = getAuth()
+
 if (shouldUseEmulators()) {
   connectFirestoreEmulator(db, 'localhost', 8080)
   connectFunctionsEmulator(getFunctions(), 'localhost', 5001)
-  connectAuthEmulator(getAuth(), 'http://localhost:9099', { disableWarnings: true })
-} else {
-  const browserPersistence = import.meta.env.DEV
-    ? browserLocalPersistence
-    : browserSessionPersistence
-  setPersistence(getAuth(), browserPersistence)
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true })
 }
 
-listenToAuthStateChanges()
+const browserPersistence = import.meta.env.DEV
+  ? browserLocalPersistence
+  : browserSessionPersistence
+
+async function initializeAuthentication(): Promise<void> {
+  try {
+    await setPersistence(auth, browserPersistence)
+  } catch (error) {
+    console.error('Unable to configure Firebase Auth persistence.', error)
+  }
+
+  await initializeAuthSession()
+}
+
+void initializeAuthentication()

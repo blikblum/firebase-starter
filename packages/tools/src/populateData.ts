@@ -1,7 +1,8 @@
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth, type UpdateRequest } from 'firebase-admin/auth'
-import { getFirestore } from 'firebase-admin/firestore'
+import { getFirestore, Timestamp } from 'firebase-admin/firestore'
 import { createMovieDocument, type MovieInput } from 'base/movies'
+import { userProfileInputSchema } from 'base/user-profile'
 
 
 process.env.GCLOUD_PROJECT = 'demo-no-project'
@@ -11,6 +12,7 @@ type SeedUser = {
   email: string
   displayName: string
   password: string
+  profileCreatedAt: string
   emailVerified?: boolean
   customClaims?: Record<string, unknown>
 }
@@ -25,6 +27,7 @@ const seedUsers: SeedUser[] = [
     email: 'alice@example.com',
     displayName: 'Alice Rivera',
     password: 'password123',
+    profileCreatedAt: '2026-01-01T12:00:00.000Z',
     emailVerified: true,
   },
   {
@@ -32,6 +35,7 @@ const seedUsers: SeedUser[] = [
     email: 'ben@example.com',
     displayName: 'Ben Nogueira',
     password: 'password123',
+    profileCreatedAt: '2026-01-02T12:00:00.000Z',
     emailVerified: true,
     customClaims: { manager: true },
   },
@@ -40,6 +44,7 @@ const seedUsers: SeedUser[] = [
     email: 'chris@example.com',
     displayName: 'Chris Martins',
     password: 'password123',
+    profileCreatedAt: '2026-01-03T12:00:00.000Z',
   },
 ]
 
@@ -168,7 +173,11 @@ async function maybeSetCustomClaims(
 }
 
 async function upsertUser(auth: ReturnType<typeof getAuth>, user: SeedUser) {
-  const { customClaims: _customClaims, ...userData } = user
+  const {
+    customClaims: _customClaims,
+    profileCreatedAt: _profileCreatedAt,
+    ...userData
+  } = user
 
   try {
     const created = await auth.createUser(userData)
@@ -220,6 +229,29 @@ async function seedMovies(user: SeedUser, uid: string): Promise<void> {
   }
 }
 
+async function seedUserProfile(user: SeedUser, uid: string): Promise<void> {
+  const profileRef = getFirestore().collection('users').doc(uid)
+  const existingProfile = await profileRef.get()
+
+  if (existingProfile.exists) {
+    return
+  }
+
+  const profile = userProfileInputSchema.parse({
+    name: user.displayName,
+    email: user.email,
+  })
+  const createdAt = Timestamp.fromDate(new Date(user.profileCreatedAt))
+
+  await profileRef.create({
+    ...profile,
+    createdAt,
+    updatedAt: createdAt,
+  })
+
+  console.log(`[tools] seeded profile for ${user.email}`)
+}
+
 async function main() {
   const emulatorHost = ensureAuthEmulatorHost()
   const firestoreEmulatorHost = ensureFirestoreEmulatorHost()
@@ -236,6 +268,7 @@ async function main() {
   for (const user of seedUsers) {
     const { action, uid } = await upsertUser(auth, user)
     console.log(`[tools] ${action}: ${user.email}`)
+    await seedUserProfile(user, uid)
     await seedMovies(user, uid)
   }
 }

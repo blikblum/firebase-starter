@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./firebase.config": "./firebase.config.ts",
-    "./movies": "./movies.ts"
+    "./movies": "./movies.ts",
+    "./user-profile": "./user-profile.ts"
   },
   "dependencies": {
     "zod": "^4.4.3"

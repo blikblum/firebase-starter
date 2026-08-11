@@ -9,9 +9,13 @@ import type {
 } from '@/pages/app-layout/app-sidebar'
 import { AppSidebar } from '@/pages/app-layout/app-sidebar'
 import { useStore } from '@/helpers/reatom'
+import { AuthPageShell } from '@/components/auth-page-shell'
+import { ProfileLoadErrorCard } from '@/components/profile-load-error-card'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { appSessionAtom } from '@/stores/appSession'
 import { signOut } from '@/stores/appSession.service'
+import { userProfileAtom } from '@/stores/userProfile'
+import { listenToCurrentUserProfile } from '@/stores/userProfile.service'
 
 const RouterLink: AppSidebarLinkRenderer = (props: AppSidebarLinkProps): React.JSX.Element => {
   return <Link {...props} />
@@ -19,15 +23,41 @@ const RouterLink: AppSidebarLinkRenderer = (props: AppSidebarLinkProps): React.J
 
 export function AppLayoutPage({ pathname }: { pathname: string }): React.JSX.Element | null {
   const session = useStore(appSessionAtom)
+  const profile = useStore(userProfileAtom)
   const navigate = useNavigate()
 
   React.useEffect(() => {
+    if (!session.isAuthReady) {
+      return
+    }
+
     if (!session.isSigned) {
       void navigate({ to: '/login' })
+    } else if (!session.user?.emailVerified) {
+      void navigate({ to: '/verify-email' })
+    } else if (profile.missing) {
+      void navigate({ to: '/onboarding' })
     }
-  }, [navigate, session.isSigned])
+  }, [navigate, profile.missing, session])
 
-  if (!session.isSigned) {
+  if (session.isSigned && session.user?.emailVerified && profile.error) {
+    return (
+      <AuthPageShell>
+        <ProfileLoadErrorCard
+          error={profile.error}
+          onRetry={() => void listenToCurrentUserProfile()}
+          onSignOut={signOut}
+        />
+      </AuthPageShell>
+    )
+  }
+
+  if (
+    !session.isAuthReady ||
+    !session.isSigned ||
+    !session.user?.emailVerified ||
+    !profile.data
+  ) {
     return null
   }
 
