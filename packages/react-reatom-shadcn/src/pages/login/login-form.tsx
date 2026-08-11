@@ -1,8 +1,9 @@
 import * as React from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { FormProvider, useForm } from 'react-hook-form'
+import { z } from 'zod'
 
-import { useStore } from '@/helpers/reatom'
-import { appSessionAtom } from '@/stores/appSession'
-import { signIn } from '@/stores/appSession.service'
+import { FormInput } from '@/components/form/form-input'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -11,33 +12,43 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { FieldError, FieldGroup } from '@/components/ui/field'
+import { useStore } from '@/helpers/reatom'
+import { appSessionAtom } from '@/stores/appSession'
+import { signIn } from '@/stores/appSession.service'
+
+const loginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Email is required.')
+    .email('Enter a valid email address.'),
+  password: z.string().trim().min(1, 'Password is required.'),
+})
+
+type LoginValues = z.infer<typeof loginSchema>
 
 export function LoginForm(): React.JSX.Element {
   const session = useStore(appSessionAtom)
-  const [email, setEmail] = React.useState('')
-  const [password, setPassword] = React.useState('')
+  const form = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  })
   const isDevMode = import.meta.env.DEV
+  const isBusy = session.isSigning || form.formState.isSubmitting
 
-  const isBusy = session.isSigning
-  const isFormReady = email.trim().length > 0 && password.trim().length > 0
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault()
-    if (!isFormReady || isBusy) {
-      return
-    }
-
-    await signIn({
-      email: email.trim(),
-      password: password.trim(),
-    })
-  }
+  const handleSubmit = form.handleSubmit(async (values) => {
+    await signIn(values)
+  })
 
   const handlePopulateDevUser = (): void => {
-    setEmail('ben@example.com')
-    setPassword('password123')
+    form.reset({
+      email: 'ben@example.com',
+      password: 'password123',
+    })
   }
 
   return (
@@ -47,50 +58,44 @@ export function LoginForm(): React.JSX.Element {
         <CardDescription>Enter email and password</CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="login-email">Email</FieldLabel>
-              <Input
+        <FormProvider {...form}>
+          <form className="space-y-6" noValidate onSubmit={handleSubmit}>
+            <FieldGroup>
+              <FormInput<LoginValues>
+                name="email"
+                label="Email"
                 id="login-email"
                 type="email"
                 placeholder="you@company.com"
                 autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
               />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="login-password">Password</FieldLabel>
-              <Input
+              <FormInput<LoginValues>
+                name="password"
+                label="Password"
                 id="login-password"
                 type="password"
                 placeholder="Your password"
                 autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
               />
-            </Field>
-            <FieldError>{session.error ?? null}</FieldError>
-          </FieldGroup>
-          <div className="space-y-3">
-            <Button className="w-full" type="submit" disabled={!isFormReady || isBusy}>
-              {isBusy ? 'Signing in...' : 'Sign in'}
-            </Button>
-            {isDevMode ? (
-              <Button
-                className="w-full"
-                type="button"
-                variant="outline"
-                onClick={handlePopulateDevUser}
-              >
-                Use dev user (ben@example.com)
+              <FieldError>{session.error ?? null}</FieldError>
+            </FieldGroup>
+            <div className="space-y-3">
+              <Button className="w-full" type="submit" disabled={isBusy}>
+                {isBusy ? 'Signing in...' : 'Sign in'}
               </Button>
-            ) : null}
-          </div>
-        </form>
+              {isDevMode ? (
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="outline"
+                  onClick={handlePopulateDevUser}
+                >
+                  Use dev user (ben@example.com)
+                </Button>
+              ) : null}
+            </div>
+          </form>
+        </FormProvider>
       </CardContent>
     </Card>
   )

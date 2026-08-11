@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Forms"
+  short_description: "Build typed forms with RHF and Zod"
+  default_prompt: "Use $manage-forms to create or migrate a shadcn form with React Hook Form and Zod."

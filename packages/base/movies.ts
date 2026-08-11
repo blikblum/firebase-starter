@@ -1,15 +1,48 @@
-export interface MovieInput {
-  title: string
-  releaseYear?: number
-  director?: string
-  genres: string[]
-  runtimeMinutes?: number
-  posterUrl?: string
-  rating?: number
-  watched: boolean
-  summary?: string
-  notes?: string
-}
+import { z } from 'zod'
+
+const optionalTextSchema = z
+  .string()
+  .trim()
+  .transform((value) => value || undefined)
+  .optional()
+
+const optionalPosterUrlSchema = z
+  .string()
+  .trim()
+  .refine((value) => !value || isHttpUrl(value), 'Use a valid poster URL.')
+  .transform((value) => value || undefined)
+  .optional()
+
+export const movieInputSchema = z.object({
+  title: z.string().trim().min(1, 'Title is required.'),
+  releaseYear: z
+    .number({ error: 'Use a valid release year.' })
+    .int('Use a valid release year.')
+    .min(1888, 'Use a valid release year.')
+    .max(2100, 'Use a valid release year.')
+    .optional(),
+  director: optionalTextSchema,
+  genres: z.array(z.string()).transform((genres) =>
+    genres.map((genre) => genre.trim()).filter(Boolean),
+  ),
+  runtimeMinutes: z
+    .number({ error: 'Runtime must be a positive number of minutes.' })
+    .int('Runtime must be a positive number of minutes.')
+    .positive('Runtime must be a positive number of minutes.')
+    .optional(),
+  posterUrl: optionalPosterUrlSchema,
+  rating: z
+    .number({ error: 'Rating must be between 0 and 10.' })
+    .finite('Rating must be between 0 and 10.')
+    .min(0, 'Rating must be between 0 and 10.')
+    .max(10, 'Rating must be between 0 and 10.')
+    .optional(),
+  watched: z.boolean(),
+  summary: optionalTextSchema,
+  notes: optionalTextSchema,
+})
+
+export type MovieInput = z.output<typeof movieInputSchema>
 
 export interface MovieDocument extends MovieInput {
   createdAt: string
@@ -64,42 +97,22 @@ function isHttpUrl(value: string): boolean {
 }
 
 export function validateMovieInput(input: MovieInput): MovieValidationResult {
-  const normalized = normalizeMovieInput(input)
+  const result = movieInputSchema.safeParse(input)
   const errors: MovieValidationResult['errors'] = {}
 
-  if (!normalized.title) {
-    errors.title = 'Title is required.'
-  }
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      const field = issue.path[0]
 
-  if (
-    normalized.releaseYear !== undefined &&
-    (!Number.isInteger(normalized.releaseYear) ||
-      normalized.releaseYear < 1888 ||
-      normalized.releaseYear > 2100)
-  ) {
-    errors.releaseYear = 'Use a valid release year.'
-  }
-
-  if (
-    normalized.runtimeMinutes !== undefined &&
-    (!Number.isInteger(normalized.runtimeMinutes) || normalized.runtimeMinutes <= 0)
-  ) {
-    errors.runtimeMinutes = 'Runtime must be a positive number of minutes.'
-  }
-
-  if (
-    normalized.rating !== undefined &&
-    (!Number.isFinite(normalized.rating) || normalized.rating < 0 || normalized.rating > 10)
-  ) {
-    errors.rating = 'Rating must be between 0 and 10.'
-  }
-
-  if (normalized.posterUrl && !isHttpUrl(normalized.posterUrl)) {
-    errors.posterUrl = 'Use a valid poster URL.'
+      if (typeof field === 'string' && field in input) {
+        const movieField = field as keyof MovieInput
+        errors[movieField] ??= issue.message
+      }
+    }
   }
 
   return {
-    valid: Object.keys(errors).length === 0,
+    valid: result.success,
     errors,
   }
 }
