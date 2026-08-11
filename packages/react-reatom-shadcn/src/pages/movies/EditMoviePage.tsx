@@ -70,7 +70,9 @@ export function EditMoviePage({ movieId }: { movieId: string }): React.JSX.Eleme
           <EmptyTitle>Movie not found</EmptyTitle>
           <EmptyDescription>This movie is not in your collection.</EmptyDescription>
         </EmptyHeader>
-        <Button render={RouterLink({ to: '/movies' })}>Back to movies</Button>
+        <Button nativeButton={false} render={RouterLink({ to: '/movies' })}>
+          Back to movies
+        </Button>
       </Empty>
     )
   }

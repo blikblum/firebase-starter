@@ -201,7 +201,11 @@ export function MovieForm({
         ) : null}
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <Button type="button" variant="outline" render={renderLink({ to: cancelHref })}>
+          <Button
+            nativeButton={false}
+            variant="outline"
+            render={renderLink({ to: cancelHref })}
+          >
             Cancel
           </Button>
           <Button type="submit" disabled={saving || isSubmitting}>

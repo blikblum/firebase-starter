@@ -78,6 +78,7 @@ export function createMovieTableColumns({
       header: 'Details',
       cell: ({ row }) => (
         <Button
+          nativeButton={false}
           variant="outline"
           size="sm"
           render={renderLink({ to: getMovieHref(row.original.id) })}

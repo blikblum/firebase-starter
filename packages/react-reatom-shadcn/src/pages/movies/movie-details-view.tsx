@@ -79,7 +79,9 @@ export function MovieDetailsView({
           <EmptyTitle>Movie not found</EmptyTitle>
           <EmptyDescription>This movie is not in your collection.</EmptyDescription>
         </EmptyHeader>
-        <Button render={renderLink({ to: backHref })}>Back to movies</Button>
+        <Button nativeButton={false} render={renderLink({ to: backHref })}>
+          Back to movies
+        </Button>
       </Empty>
     )
   }
@@ -89,12 +91,12 @@ export function MovieDetailsView({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button variant="ghost" render={renderLink({ to: backHref })}>
+        <Button nativeButton={false} variant="ghost" render={renderLink({ to: backHref })}>
           <ArrowLeftIcon />
           Back
         </Button>
         {editHref ? (
-          <Button variant="outline" render={renderLink({ to: editHref })}>
+          <Button nativeButton={false} variant="outline" render={renderLink({ to: editHref })}>
             <PencilIcon />
             Edit movie
           </Button>

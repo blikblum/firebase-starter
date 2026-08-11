@@ -62,7 +62,7 @@ export function MovieListView({
           <p className="text-sm font-medium text-muted-foreground">Collection</p>
           <h1 className="text-3xl font-semibold tracking-tight">Movies</h1>
         </div>
-        <Button render={renderLink({ to: addMovieHref })}>
+        <Button nativeButton={false} render={renderLink({ to: addMovieHref })}>
           <PlusIcon />
           Add movie
         </Button>
@@ -130,7 +130,7 @@ export function MovieListView({
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button render={renderLink({ to: addMovieHref })}>
+            <Button nativeButton={false} render={renderLink({ to: addMovieHref })}>
               <PlusIcon />
               Add movie
             </Button>
@@ -165,6 +165,7 @@ export function MovieListView({
                   {movie.summary ?? 'No summary added.'}
                 </p>
                 <Button
+                  nativeButton={false}
                   variant="outline"
                   className="w-full"
                   render={renderLink({ to: getMovieHref(movie.id) })}

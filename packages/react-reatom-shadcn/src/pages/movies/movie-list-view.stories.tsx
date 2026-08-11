@@ -1,7 +1,7 @@
 import * as React from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { Movie } from 'base/movies'
-import { fn } from 'storybook/test'
+import { expect, fn, within } from 'storybook/test'
 
 import { MovieListView, type MovieListViewProps } from './movie-list-view'
 
@@ -83,7 +83,17 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+export const Default: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    await expect(canvas.getByRole('link', { name: 'Add movie' })).toHaveAttribute(
+      'href',
+      '/movies/new',
+    )
+    await expect(canvas.getAllByRole('link', { name: 'View details' })).toHaveLength(movies.length)
+  },
+}
 
 export const TableView: Story = {
   args: {
