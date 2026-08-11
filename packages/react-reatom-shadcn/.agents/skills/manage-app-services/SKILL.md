@@ -1,166 +1,75 @@
 ---
 name: manage-app-services
-description: Create or update service functions in this repo, especially Firebase-backed store services in `src/stores/*.service.ts`. Use when adding service functions, realtime listeners, query params, or DOM task wiring.
+description: Create or update Firebase-backed service functions in this repo while validating service inputs and external data with schemas from packages/base. Use when adding services, realtime listeners, query params, persistence mapping, or DOM task wiring under src/stores.
 ---
 
 # Manage App Services
 
-Follow these steps to add or update service functions and their wiring.
+Keep Firebase and other side effects in `src/stores/<name>.service.ts`. Use services to validate boundary data, call pure domain functions from `base/*`, and update Reatom application state.
 
-## 1) Create or update the service file
+## 1) Inspect the domain boundary
 
-Place service functions in `src/stores/<name>.service.ts` and keep them focused on side effects or store updates.
+- Find the owning module in `packages/base` and its exported input, persisted-document, and entity schemas.
+- Import domain schemas, inferred types, validators, normalization, and document factories through the package subpath, such as `base/movies`.
+- If a required runtime schema is missing, add it to the base domain module and export it. Do not recreate a domain schema under `src/api`, `src/stores`, or a component.
+- Keep Firebase SDK objects, Reatom atoms, loading/error state, and subscription lifecycle in the React package. Keep `base` independent of Firebase, React, and Reatom.
 
-Usually the service will update one or more atoms defined in `src/stores/<name>.ts`. Eventually the service may return data to the caller.
+## 2) Validate every service boundary
 
-Use the Firebase modular SDK for backend data. Prefer Firestore realtime listeners for data that should stay current in the UI.
+Treat public service arguments, Firebase snapshots, pipeline results, API responses, local storage, and DOM payloads as untrusted even when TypeScript gives them a static type.
 
-Treat `onSnapshot` as the observable producer: create the subscription, push `next` and `error` states into Reatom atoms, and return the Firebase unsubscribe function.
+- Parse service input with the exported base input schema, or call the base validator when it provides the required structured result.
+- Parse complete Firebase document data with an exported document/entity schema before writing it to an atom or returning it.
+- Combine Firestore's document ID with snapshot data before parsing when the entity schema includes the ID.
+- Use `safeParse()` when invalid data should become normal store error state. Use `parse()` only when the surrounding `try`/`catch` deliberately maps the thrown validation error.
+- Never use `as Movie`, `as MovieDocument`, or another domain assertion to bypass validation.
+- Do not preserve partially parsed collections. If a document is invalid, fail the request or listener update and surface a useful service error.
 
-Example:
+A snapshot mapper should follow this shape, using the actual schema exported by the domain module:
 
 ```ts
-import { collection, getFirestore, onSnapshot, orderBy, query, type Unsubscribe } from 'firebase/firestore'
-import { moviesAtom } from './movies'
-import { Movie } from '../api/movie'
+import { movieSchema, type Movie } from 'base/movies'
+import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 
-let unsubscribeMovies: Unsubscribe | undefined
-
-export function listenToMovies(): Unsubscribe {
-  const db = getFirestore()
-  const moviesQuery = query(collection(db, 'movies'), orderBy('title', 'asc'))
-
-  unsubscribeMovies?.()
-
-  moviesAtom.set((state) => ({
-    ...state,
-    loading: true,
-    error: undefined,
-  }))
-
-  unsubscribeMovies = onSnapshot(moviesQuery, {
-    next(snapshot) {
-      const data: Movie[] = snapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      })) as Movie[]
-
-      moviesAtom.set({ loading: false, data, error: undefined })
-    },
-    error(error) {
-      moviesAtom.set({ loading: false, data: undefined, error })
-    },
+function toMovie(snapshot: QueryDocumentSnapshot<DocumentData>): Movie {
+  const result = movieSchema.safeParse({
+    ...snapshot.data(),
+    id: snapshot.id,
   })
 
-  return unsubscribeMovies
-}
-```
-
-## 2) Use params atoms for parameterized queries
-
-If a Firestore query depends on params, define those params in a separate atom, usually in `src/stores/<name>QueryParams.ts` or next to the main store atom.
-
-Do not pass changing query params only through service function arguments when the UI needs live updates. Read the params atom inside the service and listen to the params atom to rebuild the subscription or refetch data.
-
-Example:
-
-```ts
-import { atom } from '@reatom/core'
-
-export interface MoviesQueryParams {
-  tag?: string
-}
-
-export const moviesQueryParamsAtom = atom<MoviesQueryParams>({}, 'moviesQueryParams')
-```
-
-Then build the query from that atom:
-
-```ts
-import {
-  collection,
-  getDocs,
-  getFirestore,
-  onSnapshot,
-  orderBy,
-  query,
-  type Query,
-  type Unsubscribe,
-  where,
-} from 'firebase/firestore'
-import { moviesAtom } from './movies'
-import { moviesQueryParamsAtom } from './moviesQueryParams'
-import { Movie } from '../api/movie'
-
-let unsubscribeMovies: Unsubscribe | undefined
-
-function getMoviesQuery(): Query {
-  const db = getFirestore()
-  const params = moviesQueryParamsAtom()
-  let moviesQuery: Query = collection(db, 'movies')
-
-  if (params.tag) {
-    moviesQuery = query(moviesQuery, where('tags', 'array-contains', params.tag))
+  if (!result.success) {
+    throw new Error(`Movie ${snapshot.id} contains invalid data.`, {
+      cause: result.error,
+    })
   }
 
-  return query(moviesQuery, orderBy('title', 'asc'))
-}
-
-export function listenToMovies(): Unsubscribe {
-  unsubscribeMovies?.()
-
-  moviesAtom.set((state) => ({
-    ...state,
-    loading: true,
-    error: undefined,
-  }))
-
-  unsubscribeMovies = onSnapshot(getMoviesQuery(), {
-    next(snapshot) {
-      const data = snapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
-      })) as Movie[]
-
-      moviesAtom.set({ loading: false, data, error: undefined })
-    },
-    error(error) {
-      moviesAtom.set({ loading: false, data: undefined, error })
-    },
-  })
-
-  return unsubscribeMovies
-}
-
-export async function fetchMovies(): Promise<void> {
-  moviesAtom.set((state) => ({
-    ...state,
-    loading: true,
-    error: undefined,
-  }))
-
-  try {
-    const snapshot = await getDocs(getMoviesQuery())
-    const data = snapshot.docs.map((doc) => ({
-      ...doc.data(),
-      id: doc.id,
-    })) as Movie[]
-
-    moviesAtom.set({ loading: false, data, error: undefined })
-  } catch (error) {
-    moviesAtom.set({ loading: false, data: undefined, error: error as Error })
-  }
+  return result.data
 }
 ```
 
-## 3) Wire realtime updates
+If `movieSchema` does not exist, add the corresponding persisted/entity schema to `packages/base/movies.ts` before using this pattern.
 
-For global listeners, use Reatom v1000 APIs. Do not copy older Reatom examples that use `Ctx`, `ctx.get`, or `.onChange`.
+## 3) Update atoms consistently
 
-Prefer `effect` when a params atom should drive a live query and the query may depend on multiple atoms now or later:
+- Set loading or saving state before starting asynchronous work.
+- On success, store only parsed domain output and clear stale errors.
+- On validation, authentication, Firebase, or network failure, preserve the store's established data policy and set a user-facing error.
+- Keep reusable mapping and error conversion helpers small and local unless they express domain behavior that belongs in `base`.
+
+For realtime data, treat `onSnapshot` as the producer: parse every snapshot in `next`, update the atom only after the whole payload succeeds, map validation failures to error state, and return the Firebase unsubscribe function.
+
+## 4) Use params atoms for live queries
+
+When a query depends on changing UI parameters, define a focused params atom next to the store or in `src/stores/<name>QueryParams.ts`.
+
+- Validate route/search input before assigning it to the params atom.
+- Read the atom while building the query so the current state drives the request.
+- Rebuild subscriptions with Reatom v1000 `effect` or `withChangeHook`; do not use older `Ctx`, `ctx.get`, or `.onChange` examples.
+- Use `withConnectHook` and return the Firebase unsubscribe when the listener should exist only while the store has subscribers.
 
 ```ts
 import { effect } from '@reatom/core'
+
 import { listenToMovies } from './movies.service'
 import { moviesQueryParamsAtom } from './moviesQueryParams'
 
@@ -170,42 +79,13 @@ effect(() => {
 }, 'listenToMoviesOnParamsChange')
 ```
 
-Use `withChangeHook` when one specific params atom is the stable trigger, especially if the service needs the new and previous params:
+## 5) Update usages and verify
 
-```ts
-import { withChangeHook } from '@reatom/core'
-import { listenToMovies } from './movies.service'
-import { moviesQueryParamsAtom } from './moviesQueryParams'
+- Search for every caller, mapper, and related atom before changing a service signature.
+- Update form, route, tool, and listener call sites to pass the expected input and handle failure consistently.
+- When a shared schema or type changes, check every package that imports its `base/*` export.
 
-moviesQueryParamsAtom.extend(
-  withChangeHook((params, prevParams) => {
-    if (params.tag === prevParams?.tag) {
-      return
-    }
+Run from the repository root:
 
-    listenToMovies()
-  }),
-)
-```
-
-If the listener should only exist while a store has subscribers, extend the store atom with `withConnectHook` and return the Firestore unsubscribe:
-
-```ts
-import { withConnectHook } from '@reatom/core'
-import { moviesAtom } from './movies'
-import { listenToMovies } from './movies.service'
-
-moviesAtom.extend(withConnectHook(listenToMovies))
-```
-
-## 4) Update call sites
-
-Search for all usages and update parameters or return handling to match the service signature.
-
-Use:
-
-- `rg -n "\\.service\\.ts|listenToMovies|fetchMovies|moviesQueryParamsAtom" src`
-
-After updating TypeScript service code, run:
-
-- `yarn check:types`
+- `pnpm --filter react-reatom-shadcn check:types`
+- `pnpm --filter base exec tsc --noEmit` when a shared domain module changes

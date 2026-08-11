@@ -1,17 +1,17 @@
 ---
 name: use-reatom-stores
-description: Use reatom stores in React components.
+description: Consume Reatom stores in React components while preserving validated shared domain values. Use when subscribing to atoms, rendering store state, or wiring component actions to store services.
 ---
 
+Follow these steps to use stores in components.
 
-Follow these steps to use stores in your components
-
-## 1) Import the store (Atom)
-
+## 1) Import the store atom
 
 ```ts
-import { moviesAtom } from '@/stores/movies'
+import { moviesListAtom } from '@/stores/movies'
 ```
+
+Import domain types from `base/*` only when component props or helpers need them. Do not redeclare domain models in the component.
 
 ## 2) Use with `useStore` hook
 
@@ -21,18 +21,21 @@ Example:
 
 ```tsx
 import { useStore } from '@/helpers/reatom'
-import { moviesAtom } from '@/stores/movies'
-export function MovieList() {
-  const movies = useStore(moviesAtom)
+import { moviesListAtom } from '@/stores/movies'
+
+export function MovieList(): React.JSX.Element {
+  const moviesState = useStore(moviesListAtom)
 
   return (
     <ul>
-      {movies.map((movie) => (
+      {moviesState.data.map((movie) => (
         <li key={movie.id}>
-          {movie.title} ({movie.year})
+          {movie.title} ({movie.releaseYear ?? 'Unknown year'})
         </li>
       ))}
     </ul>
   )
 }
 ```
+
+Treat domain values in stores as already validated by their service boundary. Do not parse, normalize, or cast them again in the view. If untrusted data can reach an atom, fix the producer service to validate it with the owning `base/*` schema and expose failures through store error state.

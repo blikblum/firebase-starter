@@ -24,6 +24,8 @@ Provide a consistent workflow for adding or updating components under `src/compo
 - Use `React.JSX.Element` instead of the global `JSX.Element` namespace for component return types.
 - Use existing UI components from `@/components/ui` before creating new primitives.
 - Use `@/` path aliases for internal imports.
+- Import shared domain types from their `base/*` module. Do not redeclare domain models or add domain validation and normalization to a component.
+- Accept validated domain values through props or stores. Keep display formatting and transient interaction state in the component.
 - When a component is tightly coupled to store state, consider extracting a presentational component to keep stories simple.
 
 ### 3) Add or update Storybook stories

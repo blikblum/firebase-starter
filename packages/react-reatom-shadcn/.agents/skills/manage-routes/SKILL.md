@@ -32,6 +32,9 @@ Examples:
 - Use explicit return types: `React.JSX.Element` or `React.JSX.Element | null`.
 - Use `<Outlet />` in layout routes to render child content.
 - Prefer `Link`, `useNavigate`, `useRouterState`, and `Route.useParams()` from `@tanstack/react-router` instead of manual URL handling.
+- Treat path params, search params, and navigation state as untrusted boundary input. Validate domain-relevant values with Zod before passing them to pages, stores, or services.
+- Import shared schemas from `base/*`. Use route-local schemas only for route-specific representation, then transform or pipe into the owning base schema instead of duplicating domain rules.
+- Surface invalid route input through the router's validation/error flow or an explicit not-found/invalid-state page; do not force it into a domain type with an assertion.
 - If auth gating is required, read the session atom via `useStore` and redirect to `/login` when signed out.
 - Keep page components presentation-focused. If a page needs route-owned state such as params, search, loader data, or route-scoped navigation, create a wrapper `*Route` component in the route file, read the route state there, and pass plain props into `PageNamePage`.
 

@@ -14,13 +14,13 @@ Before editing:
 - Find the submitted form, its domain input type/schema, submission service, and adjacent stories.
 - Check `src/components/form/` for reusable wrappers before adding new ones.
 - Distinguish submitted data from independently controlled UI state. Keep search/filter inputs in their route or store state unless they are part of a submitted form.
-- Check whether validation must also protect a service boundary. Put reusable domain schemas in the package that owns the domain type; keep UI-only representation adapters near the form.
-- Confirm `react-hook-form`, `@hookform/resolvers`, and `zod` are dependencies of every package that imports them.
+- Find the owning `packages/base` domain module and its exported schema before defining form types or rules.
+- Keep reusable domain schemas in `packages/base` and import them through `base/*`. Keep UI-only representation adapters near the form.
 
 ## 2) Define schemas and types
 
 - Use Zod for validation and normalization, and pass the schema to `zodResolver`.
-- Infer domain types from schema output when the schema owns the domain contract:
+- Define canonical schemas in the owning `packages/base` module, export them through a package subpath, and infer domain types from their output:
 
 ```ts
 export const itemInputSchema = z.object({
@@ -30,8 +30,9 @@ export const itemInputSchema = z.object({
 export type ItemInput = z.output<typeof itemInputSchema>
 ```
 
-- Preserve service-layer validation even when the form uses the same schema. Prefer `safeParse()` when an existing validator returns structured errors instead of throwing.
-- Use a form-local schema when the displayed value differs from the domain value, then transform and pipe into the domain schema. Examples include comma-separated text becoming an array and blank numeric inputs becoming `undefined`.
+- Import the domain schema and type from `base/*`; do not copy its field rules into the React package.
+- Preserve service-layer validation even when the form uses the same schema. A resolver protects the form boundary, not Firebase reads or direct service callers.
+- Use a form-local schema only when the displayed value differs from the domain value, then transform and pipe into the exported domain schema. Examples include comma-separated text becoming an array and blank numeric inputs becoming `undefined`.
 - Keep validation messages specific and attach issues to the corresponding field path.
 - Trim text and convert optional blank strings consistently. Do not duplicate normalization in event handlers.
 
@@ -50,7 +51,9 @@ const form = useForm<z.input<typeof formSchema>, undefined, z.output<typeof form
 
 return (
   <FormProvider {...form}>
-    <form noValidate onSubmit={form.handleSubmit(onSubmit)}>{/* fields */}</form>
+    <form noValidate onSubmit={form.handleSubmit(onSubmit)}>
+      {/* fields */}
+    </form>
   </FormProvider>
 )
 ```
